@@ -1,0 +1,71 @@
+﻿@model collectionbinder.Models.Person
+
+@{
+    ViewBag.Title = "Create";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2>Create</h2>
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+    @Html.ValidationSummary(true)
+
+    <fieldset>
+        <legend>Person</legend>
+
+        <div class="editor-label">
+            @Html.LabelFor(model => model.Name)
+        </div>
+        <div class="editor-field">
+            @Html.EditorFor(model => model.Name)
+            @Html.ValidationMessageFor(model => model.Name)
+        </div>
+
+        <!-- Telefones -->
+        <div class="editor-label">
+            Phones
+        </div>
+
+        <!-- Telefone 1 -->
+        <div class="editor-field">
+            <input type="tel" name="Phones.Number" />
+        </div>
+
+        <!-- Telefone 2 -->
+        <div class="editor-field">
+            <input type="tel" name="Phones.Number" />
+        </div>
+
+        <!-- Emails -->
+
+        <div class="editor-label">
+            Emails
+        </div>
+
+        <!-- Email 1-->
+        <div class="editor-field">
+            <input type="email" name="Emails.Addresses" />
+        </div>
+
+        <!-- Email 2-->
+        <div class="editor-field">
+            <input type="email" name="Emails.Addresses" />
+        </div>
+
+        <!-- Email 3-->
+        <div class="editor-field">
+            <input type="email" name="Emails.Addresses" />
+        </div>
+
+        <p>
+            <input type="submit" value="Create" />
+        </p>
+    </fieldset>
+}
+
+
+@section Scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+}
