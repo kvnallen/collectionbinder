@@ -1,29 +1,30 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Web;
 using System.Web.Mvc;
 
 namespace collectionbinder.Binders
 {
-    public class CollectionBinder<T> : IModelBinder
+    public class CollectionBinder<T> : ICollectionBinder
     {
+
+        /// <summary>
+        /// Default implementation of method of the interface IModelBinder
+        /// </summary>
+        /// <param name="controllerContext"></param>
+        /// <param name="bindingContext"></param>
+        /// <returns></returns>
         public object BindModel(ControllerContext controllerContext, ModelBindingContext bindingContext)
         {
-            var propriedades = new List<PropertyInfo>();
+            
+            
+            var properties = new List<PropertyInfo>();
 
-            string collectionName = bindingContext.ModelName;
+            var collectionName = bindingContext.ModelName;
+            var props = typeof(T).GetProperties();
+            var count = GetLenghtValue(bindingContext, collectionName, props);
 
-            var tipo = typeof(T);
-            var props = tipo.GetProperties();
-
-            var form = controllerContext.HttpContext.Request.Form;
-
-            var count = (int)GetLenghtValue(bindingContext, collectionName, props);
-
-            var valores = new List<string[]>();
+            var values = new List<string[]>();
 
             foreach (var prop in props)
             {
@@ -31,53 +32,61 @@ namespace collectionbinder.Binders
 
                 if (valoresRetornados != null)
                 {
-                    valores.Add(valoresRetornados);
+                    values.Add(valoresRetornados);
 
-                    propriedades.Add(prop);
+                    properties.Add(prop);
                 }
 
             }
 
-            var listType = typeof(List<>);
+            //A new instance of the Generic type of the collection
+            //passed by the controller
+            var listOfObjects = new List<T>();
 
-            var constructedListType = listType.MakeGenericType(typeof(T));
-
-            var instance = (IList)Activator.CreateInstance(constructedListType);
-
-            for (int i = 0; i < count; i++)
+            for (var i = 0; i < count; i++)
             {
-                var instance2 = Activator.CreateInstance(typeof(T));
+                var genericObject = Activator.CreateInstance<T>();
 
-                for (int j = 0; j < valores.Count; j++)
+                for (var j = 0; j < values.Count; j++)
                 {
-                    TrySetProperty(instance2, propriedades[j], valores[j][i]);
+                    TrySetProperty(genericObject, properties[j], values[j][i]);
                 }
 
-                instance.Add(instance2);
+                //Add the object created to the list
+                listOfObjects.Add(genericObject);
             }
 
-            return instance;
 
+            //Return the list of objects with all the values
+            return listOfObjects;
         }
 
-        private void TrySetProperty(object obj, PropertyInfo property, object value)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <param name="property"></param>
+        /// <param name="value"></param>
+        private static void TrySetProperty(object obj, PropertyInfo property, object value)
         {
             if (property != null && property.CanWrite)
             {
-                Type tipo = property.PropertyType;
-                var val = ConvertValue(value, tipo);
+                var val = Convert.ChangeType(value, property.PropertyType);
                 property.SetValue(obj, val, null);
             }
 
         }
-        public static object ConvertValue(object value, Type tipo)
-        {
-            return Convert.ChangeType(value, tipo);
-        }
 
-        private string[] GetValue(ModelBindingContext bindingContext, string collectionName, PropertyInfo key)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="bindingContext"></param>
+        /// <param name="collectionName"></param>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        private static string[] GetValue(ModelBindingContext bindingContext, string collectionName, PropertyInfo key)
         {
-            var valueResult = bindingContext.ValueProvider.GetValue(String.Concat(collectionName, ".", key.Name));
+            var valueResult = bindingContext.ValueProvider.GetValue(collectionName + "." + key.Name);
 
             if (valueResult == null)
             {
@@ -87,25 +96,32 @@ namespace collectionbinder.Binders
             return (string[])valueResult.ConvertTo(typeof(string[]));
         }
 
-        private int? GetLenghtValue(ModelBindingContext bindingContext, string collectionName, PropertyInfo[] keys)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="bindingContext"></param>
+        /// <param name="collectionName"></param>
+        /// <param name="keys"></param>
+        /// <returns></returns>
+        private static int? GetLenghtValue(ModelBindingContext bindingContext, string collectionName, IEnumerable<PropertyInfo> keys)
         {
-            int? lenght = null;
-
             foreach (var key in keys)
             {
-                var valueResult = bindingContext.ValueProvider.GetValue(String.Concat(collectionName, ".", key.Name));
+                var valueResult = bindingContext.ValueProvider.GetValue(collectionName + "." + key.Name);
 
                 if (valueResult != null)
                 {
                     var valores = valueResult.ConvertTo(typeof(string[])) as string[];
-                    lenght = valores.Length;
 
-                    return lenght;
+                    if (valores != null)
+                    {
+                        return valores.Length;
+                    }
                 }
 
             }
 
-            return lenght;
+            return null;
         }
     }
 }
